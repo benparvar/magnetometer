@@ -1,76 +1,40 @@
 #include <Wire.h>
-
-#define ADDRESS_HMC5883 0x1E
-#define SDA_LCD 33
-#define SCL_LCD 32
-#define SDA_SENSOR 21
-#define SCL_SENSOR 22
-
-bool isSensorAvailable = false;
-
-void configureSensor() {
-  Serial.println("configureSensor");
-  Wire.begin();
-
-  // Put the HMC5883 IC into the correct operating mode
-  Wire.beginTransmission(ADDRESS_HMC5883); // Open communication with HMC5883
-  Wire.write(0x02); // Select mode register
-  Wire.write(0x00); // Continuous measurement mode
-  Wire.endTransmission();
-}
-
-void configureLCD() {
-  //Wire1.begin(SDA_LCD, SCL_LCD);
-}
-
+ 
 void setup() {
-  Serial.begin(9600);
-  Serial.println("setup");
-
-  // Configure Sensor
-  configureSensor();
-
-  // Configure LCD
-  configureLCD();
+  Wire.begin();
+  Serial.begin(115200);
+  Serial.println("\nI2C Scanner");
 }
-
-void readSensor() {
-  Serial.println("readSensor");
-  unsigned int data[6];
-
-  Wire.beginTransmission(ADDRESS_HMC5883); // Open communication with HMC5883
-  Wire.write(0x03); // Select data register
-  Wire.endTransmission();
-
-  Wire.requestFrom(ADDRESS_HMC5883, 6); // Request 6 bytes of data
-
-  int wireAvailable = Wire.available();
-
-  Serial.println(wireAvailable);
-  
-  if (6 <= wireAvailable)
-    isSensorAvailable = true;
-  else
-    isSensorAvailable = false;
-
-  if(isSensorAvailable) {
-    data[0] = Wire.read() << 8 | Wire.read(); // X-axis data
-    data[1] = Wire.read() << 8 | Wire.read(); // Y-axis data
-    data[2] = Wire.read() << 8 | Wire.read(); // Z-axis data
-  
-    // Print out values of each axis
-    Serial.print("x: ");
-    Serial.print(data[0]);
-    Serial.print(" y: ");
-    Serial.print(data[1]);
-    Serial.print(" z: ");
-    Serial.println(data[2]);
-  } else {
-    Serial.println("No sensor data available");
-  }
-}
-
+ 
 void loop() {
-  readSensor();  
-  delay(15000);
+  byte error, address;
+  int nDevices;
+  Serial.println("Scanning...");
+  nDevices = 0;
+  for(address = 1; address < 127; address++ ) {
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+    if (error == 0) {
+      Serial.print("I2C device found at address 0x");
+      if (address<16) {
+        Serial.print("0");
+      }
+      Serial.println(address,HEX);
+      nDevices++;
+    }
+    else if (error==4) {
+      Serial.print("Unknow error at address 0x");
+      if (address<16) {
+        Serial.print("0");
+      }
+      Serial.println(address,HEX);
+    }    
+  }
+  if (nDevices == 0) {
+    Serial.println("No I2C devices found\n");
+  }
+  else {
+    Serial.println("done\n");
+  }
+  delay(5000);          
 }
