@@ -1,6 +1,6 @@
 #include <Wire.h>
 
-#define ADDRESS_HMC5883 0x1E
+#define ADDRESS_HMC5883 0x0D
 #define SDA_LCD 33
 #define SCL_LCD 32
 #define SDA_SENSOR 21
@@ -24,7 +24,7 @@ void configureLCD() {
 }
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("setup");
 
   // Configure Sensor
@@ -45,8 +45,6 @@ void readSensor() {
   Wire.requestFrom(ADDRESS_HMC5883, 6); // Request 6 bytes of data
 
   int wireAvailable = Wire.available();
-
-  Serial.println(wireAvailable);
   
   if (6 <= wireAvailable)
     isSensorAvailable = true;
@@ -72,5 +70,5 @@ void readSensor() {
 
 void loop() {
   readSensor();  
-  delay(15000);
+  delay(1000);
 }
