@@ -1,76 +1,86 @@
 #include <Wire.h>
-
-#define ADDRESS_HMC5883 0x1E
-#define SDA_LCD 33
-#define SCL_LCD 32
-#define SDA_SENSOR 21
-#define SCL_SENSOR 22
+#include <Adafruit_Sensor.h>
+#include <Adafruit_HMC5883_U.h>
 
 bool isSensorAvailable = false;
 
+/* Assign a unique ID to this sensor at the same time */
+Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
+
 void configureSensor() {
   Serial.println("configureSensor");
-  Wire.begin();
+//  isSensorAvailable = mag.begin();
 
-  // Put the HMC5883 IC into the correct operating mode
-  Wire.beginTransmission(ADDRESS_HMC5883); // Open communication with HMC5883
-  Wire.write(0x02); // Select mode register
-  Wire.write(0x00); // Continuous measurement mode
-  Wire.endTransmission();
-}
 
-void configureLCD() {
-  //Wire1.begin(SDA_LCD, SCL_LCD);
+
+  /* Initialise the sensor */
+  if(!mag.begin()) {
+   /* There was a problem detecting the HMC5883 ... check your connections */
+   Serial.println("Ooops, no HMC5883 detected ... Check your wiring!");
+   while(1);
+  }
+
+  isSensorAvailable = true;
+  Serial.print("Sensor available: ");
+  Serial.println(isSensorAvailable);
 }
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("setup");
 
-  // Configure Sensor
-  configureSensor();
+  Serial.print("Sensor available: ");
+  Serial.println(isSensorAvailable);
 
-  // Configure LCD
-  configureLCD();
+  // Configure Sensor
+  isSensorAvailable = mag.begin();
+  Serial.print("Sensor available: ");
+  Serial.println(isSensorAvailable);
 }
 
 void readSensor() {
   Serial.println("readSensor");
-  unsigned int data[6];
 
-  Wire.beginTransmission(ADDRESS_HMC5883); // Open communication with HMC5883
-  Wire.write(0x03); // Select data register
-  Wire.endTransmission();
-
-  Wire.requestFrom(ADDRESS_HMC5883, 6); // Request 6 bytes of data
-
-  int wireAvailable = Wire.available();
-
-  Serial.println(wireAvailable);
-  
-  if (6 <= wireAvailable)
-    isSensorAvailable = true;
-  else
-    isSensorAvailable = false;
-
-  if(isSensorAvailable) {
-    data[0] = Wire.read() << 8 | Wire.read(); // X-axis data
-    data[1] = Wire.read() << 8 | Wire.read(); // Y-axis data
-    data[2] = Wire.read() << 8 | Wire.read(); // Z-axis data
-  
-    // Print out values of each axis
-    Serial.print("x: ");
-    Serial.print(data[0]);
-    Serial.print(" y: ");
-    Serial.print(data[1]);
-    Serial.print(" z: ");
-    Serial.println(data[2]);
+  if (isSensorAvailable) {
+    /* Get a new sensor event */
+    sensors_event_t event;
+    mag.getEvent(&event);
+    /* Display the results (magnetic vector values are in micro-Tesla (uT)) */
+    Serial.print("X: ");
+    Serial.print(event.magnetic.x);
+    Serial.print(" ");
+    Serial.print("Y: ");
+    Serial.print(event.magnetic.y);
+    Serial.print(" ");
+    Serial.print("Z: ");
+    Serial.print(event.magnetic.z);
+    Serial.print(" ");
+    Serial.println("uT");
+    // Hold the module so that Z is pointing 'up' and you can measure the heading with x&y
+    // Calculate heading when the magnetometer is level, then correct for signs of axis.
+    float heading = atan2(event.magnetic.y, event.magnetic.x);
+    // Once you have your heading, you must then add your 'Declination Angle', which is the 'Error' of the magnetic field in your location.
+    // Find yours here: http://www.magnetic-declination.com/
+    // Mine is: -13* 2' W, which is ~13 Degrees, or (which we need) 0.22 radians
+    // If you cannot find your Declination, comment out these two lines, your compass will be slightly off.
+    ////float declinationAngle = 0.22;
+    ////heading += declinationAngle;
+    // Correct for when signs are reversed.
+    if(heading < 0)
+    heading += 2*PI;
+    // Check for wrap due to addition of declination.
+    if(heading > 2*PI)
+    heading -= 2*PI;
+    // Convert radians to degrees for readability.
+    float headingDegrees = heading * 180/M_PI;
+    Serial.print("Heading (degrees): ");
+    Serial.println(headingDegrees);
   } else {
-    Serial.println("No sensor data available");
+    Serial.println("No sensor is available");
   }
 }
 
 void loop() {
   readSensor();  
-  delay(15000);
+  delay(1000);
 }
