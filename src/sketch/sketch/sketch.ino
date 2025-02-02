@@ -11,13 +11,22 @@ bool isSensorAvailable = false;
 
 void configureSensor() {
   Serial.println("configureSensor");
-  Wire.begin();
+  byte error;
 
   // Put the HMC5883 IC into the correct operating mode
+  Wire.begin();
   Wire.beginTransmission(ADDRESS_HMC5883); // Open communication with HMC5883
+
   Wire.write(0x02); // Select mode register
   Wire.write(0x00); // Continuous measurement mode
-  Wire.endTransmission();
+ 
+
+  error = Wire.endTransmission();
+
+  if (error == 0)
+    Serial.println("I2C device found");
+  else if (error == 4)
+    Serial.println("I2C device found unknow error");
 }
 
 void configureLCD() {
@@ -38,14 +47,21 @@ void setup() {
 void readSensor() {
   Serial.println("readSensor");
   unsigned int data[6];
+  byte error;
 
   Wire.beginTransmission(ADDRESS_HMC5883); // Open communication with HMC5883
   Wire.write(0x03); // Select data register
-  Wire.endTransmission();
+  error = Wire.endTransmission();
+
+  Serial.print("i2c error: ");
+  Serial.println(error);
 
   Wire.requestFrom(ADDRESS_HMC5883, 6); // Request 6 bytes of data
 
   int wireAvailable = Wire.available();
+
+  Serial.print("wireAvailable: ");
+  Serial.println(wireAvailable);
   
   if (6 <= wireAvailable)
     isSensorAvailable = true;
