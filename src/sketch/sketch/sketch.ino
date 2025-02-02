@@ -21,7 +21,7 @@ void configureSensor() {
 }
 
 void configureLCD() {
-  //Wire1.begin(SDA_LCD, SCL_LCD);
+
 }
 
 void setup() {
