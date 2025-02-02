@@ -1,7 +1,6 @@
 #include <Wire.h>
 
-
-// #define ADDRESS_HMC5883 0x1E // Não funciona
+//define ADDRESS_HMC5883 0x1E // Não funciona
 #define ADDRESS_HMC5883 0x0D // Encontrado na listagem do i2c
 #define SDA_LCD 33
 #define SCL_LCD 32
